@@ -135,7 +135,7 @@ def face_recogntion():
         ret,frame=cap.read() #用于从视频文件或摄像头中读取一帧图像。该函数的返回值是一个布尔值和一个图像帧
         if not (frame is None):
             img_rec ,sections_images,results= face_recognition.recognition(frame)
-            if (not ("unknown" in results ))and len(results)==3:
+            if (not ("unknown" in results ))and len(results)==3: #进行3个人的识别
                 cv2.imwrite(f'./recognition/results.png', img_rec)
                 for i in range(3):
                     cv2.imwrite(f'./sections/{i}_output.png', sections_images[i])
