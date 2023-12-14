@@ -47,6 +47,7 @@ class FaceRecognition:
                     "user_name": user_name,
                     "feature": embedding
                 })
+    
     @staticmethod
     def my_draw_on(img, faces,results):
         import cv2
@@ -58,17 +59,20 @@ class FaceRecognition:
             color = (0, 0,255 )
             cv2.rectangle(dimg, (box[0], box[1]), (box[2], box[3]), color, 2)
             if face.kps is not None:
-                kps = face.kps.astype(int)
-                #print(landmark.shape)
+                kps = face.kps.astype(int) #先把关键点坐标转化为整数
+                
+                #绘制关键点
                 for l in range(kps.shape[0]):
                     color = (0, 0, 255)
                     if l == 0 or l == 3:
                         color = (0, 255, 0)
                     cv2.circle(dimg, (kps[l][0], kps[l][1]), 1, color, 2)
+                    
             img_cut=dimg[box[1]:box[3]+1,box[0]:box[2]+1].copy()
             cv2.putText(dimg,'%s'%results[i], (box[0], box[1]),cv2.FONT_HERSHEY_COMPLEX,0.7,(0,255,0),1)
             images_array.append(img_cut)
         return dimg,images_array
+    
     # 人脸识别
     def recognition(self, image):
         faces = self.model.get(image)
@@ -101,20 +105,23 @@ class FaceRecognition:
         # 判断人脸是否存在
         embedding = np.array(faces[0].embedding).reshape((1, -1))
         embedding = preprocessing.normalize(embedding)
+        #获取嵌入特征
         is_exits = False
         for com_face in self.faces_embedding:
             r = self.feature_compare(embedding, com_face["feature"], self.threshold)
             if r:
                 is_exits = True
         if is_exits:
-            return '该用户已存在'
+            return 'the person has alreay be enrolled'
+        
         # 符合注册条件保存图片，同时把特征添加到人脸特征库中
         cv2.imencode('.jpg', image)[1].tofile(os.path.join(self.face_db, '%s.jpg' % user_name))
         self.faces_embedding.append({
             "user_name": user_name,
             "feature": embedding
         })
-        return "success"
+        return "successfully imencode"
+
 #封装人脸识别，输入一张合照，如果全能识别出熟悉的人，则输出一张框出各个人脸的合照以及各个人分别的照片
 def face_recogntion():
     flag=0
@@ -122,22 +129,22 @@ def face_recogntion():
             os.makedirs('./recognition')
     if not os.path.exists("./sections"):
             os.makedirs('./sections')   
-    face_recognitio = FaceRecognition()
+    face_recognition = FaceRecognition()
     cap = cv2.VideoCapture(0)
     while flag==0:
-        ret,frame=cap.read() 
+        ret,frame=cap.read() #用于从视频文件或摄像头中读取一帧图像。该函数的返回值是一个布尔值和一个图像帧
         if not (frame is None):
-            img_rec ,sections_images,results= face_recognitio.recognition(frame)
-            if (not ("unknown" in results ))and len(results)==2:
+            img_rec ,sections_images,results= face_recognition.recognition(frame)
+            if (not ("unknown" in results ))and len(results)==3:
                 cv2.imwrite(f'./recognition/results.png', img_rec)
-                for i in range(2):
+                for i in range(3):
                     cv2.imwrite(f'./sections/{i}_output.png', sections_images[i])
                 flag=1
     
 def face_registration():
     cap = cv2.VideoCapture(0)
     ret,frame=cap.read() 
-    face_recognitio = FaceRecognition()
-    name=input("Please tell me his or her name?")
-    result = face_recognitio.register(frame, user_name=name)
+    face_recognition = FaceRecognition()
+    name=input("Please input the person's name:")
+    result = face_recognition.register(frame, user_name=name)
     print(result)
